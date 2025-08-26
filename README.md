@@ -1,8 +1,12 @@
-# canceleleddedededed
-its soooo long and im not doing allat so for now yall have access to the shit ui if anyone wants to YOU CAN TAKE THIS UI AND USE IT INFACT PLEASE DO
+# czdraw (Canceled)
+i canceled this if yall wanna use the ui and make a (better) working app PLEASE DO IT
+you can get the ui at
+https://github.com/snigglaberry/czdraw/src/ui.html
 
-## Screensh
-![poo](https://github.com/snigglaberry/czdraw/czpic.png
+## Screenshot
+![czdraw UI](https://github.com/snigglaberry/czdraw/blob/main/czpic.png)
+
 ---
 
-## btw if anyone does end up using this please lmk
+> If you end up using this lmk
+> also this was ment to be a procreate alternative which i quit working on
