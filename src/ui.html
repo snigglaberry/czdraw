@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>czdraw super duper cool ui</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <style>
+    :root{
+      --bg:#0b0b0f; --bg2:#121219; --bg3:#1a1b24; --panel:#0f1117; --ink:#ffffff;
+      --muted:#a9b1bb; --accent:#8b5cf6; --accent2:#22d3ee; --ok:#22c55e; --warn:#f59e0b;
+      --danger:#ef4444; --shadow:0 10px 30px rgba(0,0,0,.35);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;background:linear-gradient(180deg,var(--bg),#0b0c12);color:var(--ink);font:14px/1.5 Inter,system-ui,Segoe UI,Roboto,Arial}
+    button,input,select{font:inherit;color:inherit}
+    .app{display:grid;grid-template-rows:auto 1fr; height:100%}
+    header{display:flex;gap:8px;align-items:center; padding:10px 14px; background:var(--bg2); box-shadow:var(--shadow); position:relative; z-index:5}
+    header .brand{display:flex;align-items:center; gap:10px; font-weight:700; letter-spacing:.2px}
+    .brand .dot{width:10px;height:10px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2)); box-shadow:0 0 20px rgba(34,211,238,.4)}
+    .chip{background:var(--bg3);border:1px solid #232436; padding:6px 10px; border-radius:999px}
+    .ghost{background:transparent;border:1px solid #26283d; padding:6px 10px;border-radius:10px;cursor:pointer}
+    .ghost:hover{border-color:#3b3f67}
+    .accent{background:linear-gradient(135deg,var(--accent),var(--accent2)); border:none; padding:8px 14px; border-radius:12px; cursor:pointer; font-weight:600}
+    .accent:disabled{opacity:.5;cursor:not-allowed}
+    .layout{display:grid; grid-template-columns: 280px 1fr 280px; gap:12px; padding:12px; min-height:0}
+    aside{background:var(--panel); border:1px solid #1f2233; border-radius:16px; box-shadow:var(--shadow); display:flex; flex-direction:column; min-height:0}
+    .pane-title{padding:12px 14px; border-bottom:1px solid #20243a; font-weight:600}
+    .pane-body{padding:12px; display:flex; flex-direction:column; gap:12px; overflow:auto}
+    .canvas-wrap{background:#0a0b0f; border:1px dashed #2a2b44; border-radius:16px; display:grid; place-items:center; position:relative; overflow:auto; min-height:0}
+    #stage{ background:#111; box-shadow:0 20px 60px rgba(0,0,0,.6); image-rendering: optimizeQuality; cursor: crosshair; }
+    .toolbar{display:flex; gap:8px; flex-wrap:wrap}
+    .tool{background:#121423;border:1px solid #26283d; padding:8px 10px; border-radius:12px; cursor:pointer}
+    .tool.active{border-color:var(--accent2); box-shadow:0 0 0 2px rgba(34,211,238,.2) inset}
+    .row{display:flex; align-items:center; gap:8px}
+    .col{display:flex; flex-direction:column; gap:8px}
+    .label{font-size:12px; color:var(--muted)}
+    .range{width:100%}
+    .color{width:32px;height:32px;border-radius:10px;border:2px solid #2b2e4a; overflow:hidden}
+    .color input{appearance:none; width:100%; height:100%; border:none; padding:0; background:none}
+    .grid{display:grid; gap:8px}
+    .grid.two{grid-template-columns:1fr 1fr}
+    .grid.three{grid-template-columns:1fr 1fr 1fr}
+    .pill{padding:6px 10px;border:1px solid #26283d; border-radius:10px; background:#121423}
+    .list{display:flex; flex-direction:column; gap:6px}
+    .list .item{display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; background:#0e1020; border:1px solid #1c1f33; border-radius:12px}
+    .list .item .meta{display:flex; align-items:center; gap:8px}
+    .tag{font-size:11px; background:#131528; color:#cdd3ff; border:1px solid #2a2e53; padding:2px 6px; border-radius:999px}
+    .kbd{font-size:11px; border:1px solid #2a2e53; padding:2px 6px; border-radius:6px; background:#0c0f21; color:#cdd3ff}
+    .hidden{display:none !important}
+
+    /* Modals */
+    .modal{position:fixed; inset:0; display:grid; place-items:center; background:rgba(5,6,12,.6); backdrop-filter: blur(6px); z-index:20}
+    .card{background:var(--panel); border:1px solid #1f2233; border-radius:16px; padding:14px; width:min(720px,92vw); box-shadow:var(--shadow)}
+    .card h2{margin:8px 0 2px}
+    .card .sub{color:var(--muted); margin:0 0 12px}
+    .preset{padding:8px 10px; border:1px solid #26283d; border-radius:12px; cursor:pointer; background:#0e1020}
+    .preset:hover{border-color:#3b3f67}
+    .footer{display:flex; justify-content:flex-end; gap:10px; margin-top:12px}
+
+    /* Layer thumbnails */
+    .thumb{width:38px;height:28px;background:#0b0d1a;border:1px solid #22264a;border-radius:6px}
+
+    /* Toast */
+    .toast{position:fixed; bottom:16px; right:16px; padding:10px 14px; background:#111430; border:1px solid #2a2f57; border-radius:12px; box-shadow:var(--shadow); z-index:40}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="brand"><span class="dot"></span> czdraw <span class="chip">beta</span></div>
+      <div class="row" style="gap:6px;margin-left:16px">
+        <button class="ghost" id="homeBtn">Home</button>
+        <button class="ghost" id="newBtn">New Canvas</button>
+        <button class="ghost" id="openImgBtn">Import Image</button>
+        <button class="ghost" id="exportBtn">Export PNG</button>
+        <span class="chip">Undo <span class="kbd">Ctrl/Cmd+Z</span> • Redo <span class="kbd">Ctrl/Cmd+Y</span></span>
+      </div>
+      <div style="margin-left:auto" class="row">
+        <span class="chip">FPS <span id="fps">–</span></span>
+        <span class="chip">Canvas <span id="wh">0×0</span></span>
+      </div>
+    </header>
+
+    <div class="layout">
+      <!-- Left: Tools -->
+      <aside>
+        <div class="pane-title">Tools</div>
+        <div class="pane-body">
+          <div class="toolbar" id="toolbar">
+            <button class="tool active" data-tool="brush" title="Brush (B)">Brush</button>
+            <button class="tool" data-tool="eraser" title="Eraser (E)">Eraser</button>
+            <button class="tool" data-tool="smudge" title="Smudge (S)">Smudge</button>
+            <button class="tool" data-tool="picker" title="Color Picker (I)">Picker</button>
+            <button class="tool" data-tool="move" title="Move Layer (V)">Move</button>
+          </div>
+
+          <div class="grid two">
+            <div class="col">
+              <div class="label">Size <span id="sizeVal">20</span></div>
+              <input id="size" type="range" min="1" max="400" value="20" class="range" />
+            </div>
+            <div class="col">
+              <div class="label">Opacity <span id="opacityVal">1.0</span></div>
+              <input id="opacity" type="range" min="0.01" max="1" step="0.01" value="1" class="range" />
+            </div>
+          </div>
+
+          <div class="grid two">
+            <div class="col">
+              <div class="label">Spacing <span id="spacingVal">0.15</span></div>
+              <input id="spacing" type="range" min="0.01" max="1" step="0.01" value="0.15" class="range" />
+            </div>
+            <div class="col">
+              <div class="label">Flow <span id="flowVal">1.0</span></div>
+              <input id="flow" type="range" min="0.05" max="1" step="0.05" value="1" class="range" />
+            </div>
+          </div>
+
+          <div class="grid two">
+            <div class="col">
+              <div class="label">Hardness <span id="hardVal">0.8</span></div>
+              <input id="hard" type="range" min="0" max="1" step="0.01" value="0.8" class="range" />
+            </div>
+            <div class="col">
+              <div class="label">Smoothing <span id="smoothVal">0.6</span></div>
+              <input id="smooth" type="range" min="0" max="0.95" step="0.05" value="0.6" class="range" />
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="color"><input id="color" type="color" value="#ffffff" /></div>
+            <button class="pill" id="swapBG">Swap BG</button>
+            <button class="pill" id="clearLayer">Clear Layer</button>
+          </div>
+
+          <div class="col">
+            <div class="label">Brush</div>
+            <select id="brushList" class="pill"></select>
+            <div class="row">
+              <button class="pill" id="openBrushStudio">Brush Studio</button>
+              <button class="pill" id="importBrushset">Import .brushset</button>
+            </div>
+          </div>
+
+          <div class="col">
+            <div class="label">Project</div>
+            <div class="row">
+              <button class="pill" id="saveProject">Save Project</button>
+              <button class="pill" id="loadProject">Open Project</button>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Center: Canvas -->
+      <div class="canvas-wrap" id="canvasWrap">
+        <canvas id="stage" width="1600" height="900"></canvas>
+      </div>
+
+      <!-- Right: Layers -->
+      <aside>
+        <div class="pane-title">Layers</div>
+        <div class="pane-body">
+          <div class="row" style="justify-content:space-between">
+            <button class="pill" id="addLayer">+ Layer</button>
+            <button class="pill" id="delLayer">- Layer</button>
+            <button class="pill" id="mergeDown">Merge Down</button>
+          </div>
+          <div id="layers" class="list"></div>
+          <div class="col">
+            <div class="label">Blend</div>
+            <select id="blendMode" class="pill">
+              <option>source-over</option>
+              <option>multiply</option>
+              <option>screen</option>
+              <option>overlay</option>
+              <option>darken</option>
+              <option>lighten</option>
+              <option>color-dodge</option>
+              <option>color-burn</option>
+              <option>hard-light</option>
+              <option>soft-light</option>
+              <option>difference</option>
+              <option>exclusion</option>
+            </select>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <!-- HOME modal -->
+  <div class="modal" id="homeModal">
+    <div class="card">
+      <h2>Welcome to <b>czdraw</b></h2>
+      <p class="sub">A fast, Procreate-style painter in your browser. Create a canvas, pick a brush, and go nuts. (Beta)</p>
+      <div class="grid three">
+        <button class="preset" data-preset="hd">New • 1920×1080</button>
+        <button class="preset" data-preset="square">New • 2048×2048</button>
+        <button class="preset" data-preset="poster">New • 3000×4000</button>
+      </div>
+      <div style="margin-top:10px" class="grid two">
+        <div class="col">
+          <div class="label">Custom width</div>
+          <input class="pill" id="cWidth" type="number" value="1600" min="64" max="8192" />
+        </div>
+        <div class="col">
+          <div class="label">Custom height</div>
+          <input class="pill" id="cHeight" type="number" value="900" min="64" max="8192" />
+        </div>
+      </div>
+      <div class="footer">
+        <input id="homeImport" type="file" accept="image/*" class="hidden" />
+        <button class="ghost" id="homeOpen">Import Image…</button>
+        <button class="accent" id="homeCreate">Create Canvas</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Brush Studio modal -->
+  <div class="modal hidden" id="brushModal">
+    <div class="card">
+      <h2>Brush Studio</h2>
+      <p class="sub">Create custom brushes. Tip image is optional (defaults to soft round).</p>
+      <div class="grid two">
+        <div class="col">
+          <div class="label">Name</div>
+          <input id="bsName" class="pill" placeholder="My Brush" />
+          <div class="label">Tip Image (.png)</div>
+          <input id="bsTip" type="file" accept="image/png" class="pill" />
+          <div class="label">Defaults</div>
+          <div class="grid two">
+            <div class="col"><div class="label">Size</div><input id="bsSize" class="pill" type="number" value="40" /></div>
+            <div class="col"><div class="label">Spacing</div><input id="bsSpacing" class="pill" type="number" step="0.01" value="0.15" /></div>
+            <div class="col"><div class="label">Hardness</div><input id="bsHard" class="pill" type="number" step="0.01" value="0.8" /></div>
+            <div class="col"><div class="label">Flow</div><input id="bsFlow" class="pill" type="number" step="0.05" value="1" /></div>
+          </div>
+        </div>
+        <div class="col">
+          <div class="label">Dynamics</div>
+          <label><input type="checkbox" id="dynSizeJitter" /> Size Jitter</label>
+          <label><input type="checkbox" id="dynAngleJitter" /> Angle Jitter</label>
+          <label><input type="checkbox" id="dynScatter" /> Scatter</label>
+          <label><input type="checkbox" id="dynOpacityJitter" /> Opacity Jitter</label>
+          <div class="row">
+            <button class="pill" id="saveBrush">Save Brush</button>
+            <button class="pill" id="closeBrush">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast hidden" id="toast"></div>
+
+  <input type="file" id="imageInput" accept="image/*" class="hidden" />
+  <input type="file" id="brushsetInput" accept=".brush,.bbrush,.brushset,.zip" class="hidden" />
+
+  <script>
+  // ---------- Utilities ----------
+  const $ = (sel, root=document) => root.querySelector(sel);
+  const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+  const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+  const lerp = (a,b,t)=>a+(b-a)*t;
+  const dist = (a,b)=>Math.hypot(b.x-a.x,b.y-a.y);
+  const toast = (msg) => { const t = $('#toast'); t.textContent = msg; t.classList.remove('hidden'); setTimeout(()=>t.classList.add('hidden'), 2500) };
+
+  // ---------- State ----------
+  const stage = $('#stage');
+  const ctx = stage.getContext('2d');
+  const layersEl = $('#layers');
+  const wh = $('#wh');
+
+  let project = {
+    width: stage.width,
+    height: stage.height,
+    layers: [],
+    active: 0,
+    bg: '#111111',
+  };
+  let history = [];
+  let redo = [];
+
+  // Default brush set
+  const defaultBrushes = [
+    { id:'soft-round', name:'Soft Round', tip:null, size:20, spacing:0.15, flow:1, hardness:0.8,
+      dynamics:{sizeJitter:false, angleJitter:false, scatter:false, opacityJitter:false} },
+    { id:'pencil', name:'Pencil', tip:null, size:6, spacing:0.08, flow:0.6, hardness:0.9,
+      dynamics:{sizeJitter:true, angleJitter:false, scatter:true, opacityJitter:true} },
+    { id:'marker', name:'Marker', tip:null, size:30, spacing:0.05, flow:0.9, hardness:0.1,
+      dynamics:{sizeJitter:false, angleJitter:false, scatter:false, opacityJitter:false} },
+  ];
+  // Rehydrate saved brushes or use defaults
+  let brushes = (function(){
+    try{
+      const raw = localStorage.getItem('cz.brushes');
+      if(raw) return JSON.parse(raw);
+    }catch(e){ console.warn('bad brushes in storage',e); }
+    return defaultBrushes.slice();
+  })();
+  let activeBrushId = brushes[0].id;
+
+  // Make sure every brush has tipImg=null initially; when brush is created with tip we attach tipImg Image object
+  brushes.forEach(b=>{ if(!('tipImg' in b)) b.tipImg = null; });
+
+  // ---------- Layers ----------
+  function createLayer(name){
+    const c = document.createElement('canvas');
+    c.width = project.width; c.height = project.height;
+    const o = { name: name||`Layer ${project.layers.length+1}`, canvas: c, visible:true, opacity:1, blend:'source-over', x:0, y:0 };
+    project.layers.unshift(o); // add at top
+    project.active = 0;
+    renderLayersPanel();
+    pushHistory();
+  }
+  function deleteLayer(){
+    if(project.layers.length<=1) return toast('Need at least one layer');
+    project.layers.splice(project.active,1);
+    project.active = 0;
+    renderLayersPanel();
+    pushHistory();
+  }
+  function mergeDown(){
+    const i = project.active; if(i===project.layers.length-1) return toast('Nothing under to merge');
+    const top = project.layers[i]; const under = project.layers[i+1];
+    const uctx = under.canvas.getContext('2d');
+    uctx.globalAlpha = top.opacity; uctx.globalCompositeOperation = top.blend;
+    uctx.drawImage(top.canvas, top.x, top.y);
+    project.layers.splice(i,1); project.active = i; renderLayersPanel(); pushHistory();
+  }
+  function renderLayersPanel(){
+    layersEl.innerHTML = '';
+    project.layers.forEach((L, idx)=>{
+      const item = document.createElement('div'); item.className='item';
+      const meta = document.createElement('div'); meta.className='meta';
+      const thumb = document.createElement('canvas'); thumb.width=76; thumb.height=56; thumb.className='thumb';
+      const tctx = thumb.getContext('2d'); tctx.fillStyle='#111'; tctx.fillRect(0,0,thumb.width,thumb.height);
+      const scale = Math.min(thumb.width/project.width, thumb.height/project.height);
+      tctx.save(); tctx.scale(scale, scale); tctx.drawImage(L.canvas, 0, 0); tctx.restore();
+      const name = document.createElement('div'); name.textContent=L.name;
+      meta.append(thumb, name);
+
+      const right = document.createElement('div'); right.className='row';
+      const eye = document.createElement('button'); eye.className='pill'; eye.textContent = L.visible?'👁':'🚫'; eye.onclick=()=>{L.visible=!L.visible; render(); renderLayersPanel();}
+      const up = document.createElement('button'); up.className='pill'; up.textContent='↑'; up.onclick=()=>{ if(idx>0){ const a=project.layers[idx-1]; project.layers[idx-1]=L; project.layers[idx]=a; project.active=idx-1; renderLayersPanel(); render(); } };
+      const down = document.createElement('button'); down.className='pill'; down.textContent='↓'; down.onclick=()=>{ if(idx<project.layers.length-1){ const b=project.layers[idx+1]; project.layers[idx+1]=L; project.layers[idx]=b; project.active=idx+1; renderLayersPanel(); render(); } };
+      const select = document.createElement('button'); select.className='pill'; select.textContent= idx===project.active ? '●' : '○'; select.onclick=()=>{project.active=idx; renderLayersPanel();}
+      right.append(eye, up, down, select);
+
+      item.append(meta,right); layersEl.append(item);
+    });
+
+    // Blend + opacity controls for active layer
+    const L = project.layers[project.active];
+    $('#blendMode').value = L.blend;
+  }
+
+  function pushHistory(){
+    const snapshot = project.layers.map(L=>({
+      name:L.name, visible:L.visible, opacity:L.opacity, blend:L.blend, x:L.x, y:L.y,
+      bitmap: L.canvas.toDataURL('image/png')
+    }));
+    history.push({w:project.width,h:project.height,bg:project.bg, layers:snapshot, active:project.active});
+    if(history.length>40) history.shift();
+    redo.length = 0;
+  }
+
+  function applyState(state){
+    project.width = state.w; project.height = state.h; project.bg = state.bg; project.active = state.active;
+    stage.width = state.w; stage.height = state.h; wh.textContent = `${state.w}×${state.h}`;
+    project.layers = state.layers.map(S=>{ const c=document.createElement('canvas'); c.width=state.w; c.height=state.h; const i=new Image(); const ctxc=c.getContext('2d'); i.onload=()=>{ctxc.drawImage(i,0,0)}; i.src=S.bitmap; return {name:S.name,visible:S.visible,opacity:S.opacity,blend:S.blend,x:S.x,y:S.y,canvas:c}; });
+    renderLayersPanel(); requestAnimationFrame(render);
+  }
+
+  function undo(){ if(history.length<2) return; const cur=history.pop(); redo.push(cur); const prev=history[history.length-1]; applyState(prev); }
+  function redoAct(){ if(redo.length===0) return; const st=redo.pop(); history.push(st); applyState(st); }
+
+  // ---------- Renderer ----------
+  function render(){
+    ctx.save(); ctx.fillStyle=project.bg; ctx.fillRect(0,0,stage.width,stage.height); ctx.restore();
+    for(let i=project.layers.length-1;i>=0;i--){ const L=project.layers[i]; if(!L.visible) continue; ctx.globalAlpha=L.opacity; ctx.globalCompositeOperation=L.blend; ctx.drawImage(L.canvas, L.x, L.y); }
+    wh.textContent = `${stage.width}×${stage.height}`;
+  }
+
+  // ---------- Brush Engine ----------
+  const toolState = { tool:'brush', color:'#ffffff', size:20, opacity:1, spacing:.15, flow:1, hardness:.8, smoothing:.6 };
+  let drawing=false; let lastPt=null; let lastEmit=0; let path=[];
+
+  function getActiveCtx(){ return project.layers[project.active].canvas.getContext('2d'); }
+  function setComposite(ctx2){ if(toolState.tool==='eraser') ctx2.globalCompositeOperation='destination-out'; else ctx2.globalCompositeOperation='source-over'; }
+
+  function softRoundTip(size, hard){
+    const c=document.createElement('canvas'); c.width=c.height=size; const x=c.getContext('2d');
+    const g=x.createRadialGradient(size/2,size/2, hard*size/2, size/2,size/2, size/2);
+    g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+    x.fillStyle=g; x.beginPath(); x.arc(size/2,size/2,size/2,0,Math.PI*2); x.fill();
+    return c;
+  }
+
+  function pickBrush(){ return brushes.find(b=>b.id===activeBrushId) || brushes[0]; }
+
+  function stampBrush(ctx2, x, y, pressure=1, angle=0){
+    const B = pickBrush();
+    const baseSize = (B.size || toolState.size || 20);
+    const sz = baseSize * (B.dynamics && B.dynamics.sizeJitter ? lerp(0.85,1.15,Math.random()) : 1) * pressure;
+    const alpha = (toolState.opacity || 1) * (B.flow || toolState.flow || 1) * (B.dynamics && B.dynamics.opacityJitter ? lerp(0.7,1,Math.random()) : 1);
+    const tip = B.tipImg || softRoundTip(Math.max(4, Math.ceil(sz)), (B.hardness ?? toolState.hardness));
+
+    ctx2.save();
+    setComposite(ctx2);
+    ctx2.globalAlpha = alpha;
+    ctx2.translate(x,y);
+    if(B.dynamics && B.dynamics.angleJitter) angle += (Math.random()-.5)*0.6;
+    if(angle!==0){ ctx2.rotate(angle); }
+    const w=tip.width, h=tip.height;
+    const s = sz/Math.max(w,h);
+    ctx2.scale(s,s);
+    ctx2.drawImage(tip, -w/2, -h/2);
+    ctx2.restore();
+  }
+
+  function smudgeStroke(ctx2, from, to){
+    const r = Math.max(6, toolState.size*0.8);
+    const dx = to.x - from.x, dy = to.y - from.y; const len = Math.hypot(dx,dy);
+    const steps = Math.max(1, Math.floor(len/Math.max(1, r*toolState.spacing)));
+    const tmp = document.createElement('canvas'); tmp.width = r*2; tmp.height = r*2; const tctx=tmp.getContext('2d');
+    for(let i=1;i<=steps;i++){
+      const t = i/steps; const ix = Math.round(lerp(from.x, to.x, t)); const iy = Math.round(lerp(from.y, to.y, t));
+      tctx.clearRect(0,0,tmp.width,tmp.height);
+      tctx.globalCompositeOperation='source-over';
+      tctx.drawImage(project.layers[project.active].canvas, ix-r, iy-r, r*2, r*2, 0,0, r*2, r*2);
+      ctx2.globalAlpha = toolState.opacity*0.9; ctx2.globalCompositeOperation='source-over';
+      ctx2.drawImage(tmp, ix-r, iy-r);
+    }
+  }
+
+  function drawLine(from, to){
+    const B = pickBrush();
+    const Lctx = getActiveCtx();
+    const spacingPx = Math.max(1, (B.spacing || toolState.spacing) * (B.size || toolState.size));
+    const length = dist(from,to);
+    const steps = Math.max(1, Math.floor(length/spacingPx));
+    for(let i=1;i<=steps;i++){
+      const t = i/steps;
+      const p = { x: lerp(from.x,to.x,t), y: lerp(from.y,to.y,t) };
+      const ang = Math.atan2(to.y-from.y, to.x-from.x);
+      stampBrush(Lctx, p.x, p.y, 1, ang);
+    }
+  }
+
+  function toLocal(evt){
+    const rect = stage.getBoundingClientRect();
+    const x = (evt.clientX - rect.left) * (stage.width/rect.width);
+    const y = (evt.clientY - rect.top) * (stage.height/rect.height);
+    return {x,y};
+  }
+
+  function onDown(e){
+    drawing = true; lastPt = toLocal(e); path=[lastPt]; lastEmit=performance.now();
+    if(toolState.tool==='picker'){
+      const img = ctx.getImageData(lastPt.x,lastPt.y,1,1).data; const col = `#${[img[0],img[1],img[2]].map(v=>v.toString(16).padStart(2,'0')).join('')}`; 
+      $('#color').value = col; toolState.color=col; $('.tool[data-tool="brush"]').click(); return;
+    }
+    pushHistory();
+  }
+  function onMove(e){ if(!drawing) return; const p = toLocal(e); const Lctx=getActiveCtx();
+    if(toolState.tool==='move'){
+      const L = project.layers[project.active]; L.x += (p.x-lastPt.x); L.y += (p.y-lastPt.y); lastPt=p; render(); return;
+    }
+    Lctx.save(); Lctx.fillStyle = toolState.color; Lctx.strokeStyle = toolState.color; Lctx.globalAlpha=toolState.opacity; setComposite(Lctx);
+    if(toolState.tool==='smudge'){ smudgeStroke(Lctx, lastPt, p); }
+    else if(toolState.tool==='brush' || toolState.tool==='eraser'){ drawLine(lastPt, p); }
+    Lctx.restore(); lastPt=p; render();
+  }
+  function onUp(){ drawing=false; path=[]; }
+
+  stage.addEventListener('mousedown', onDown);
+  stage.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', onUp);
+
+  // Touch support
+  stage.addEventListener('touchstart', e=>{e.preventDefault(); onDown(e.touches[0])},{passive:false});
+  stage.addEventListener('touchmove', e=>{e.preventDefault(); onMove(e.touches[0])},{passive:false});
+  stage.addEventListener('touchend', e=>{e.preventDefault(); onUp()},{passive:false});
+
+  // ---------- UI Wiring ----------
+  function refreshBrushList(){ const sel=$('#brushList'); sel.innerHTML=''; brushes.forEach(b=>{ const o=document.createElement('option'); o.value=b.id; o.textContent=b.name; if(b.id===activeBrushId) o.selected=true; sel.append(o); }); }
+  refreshBrushList();
+
+  $('#brushList').addEventListener('change', e=>{ activeBrushId = e.target.value; });
+
+  $('#toolbar').addEventListener('click', e=>{ const btn=e.target.closest('.tool'); if(!btn) return; $$('.tool').forEach(t=>t.classList.remove('active')); btn.classList.add('active'); toolState.tool=btn.dataset.tool; });
+
+  $('#size').oninput = e=>{ toolState.size=parseFloat(e.target.value); $('#sizeVal').textContent=toolState.size; };
+  $('#opacity').oninput = e=>{ toolState.opacity=parseFloat(e.target.value); $('#opacityVal').textContent=toolState.opacity.toFixed(2); };
+  $('#spacing').oninput = e=>{ toolState.spacing=parseFloat(e.target.value); $('#spacingVal').textContent=toolState.spacing.toFixed(2); };
+  $('#flow').oninput = e=>{ toolState.flow=parseFloat(e.target.value); $('#flowVal').textContent=toolState.flow.toFixed(2); };
+  $('#hard').oninput = e=>{ toolState.hardness=parseFloat(e.target.value); $('#hardVal').textContent=toolState.hardness.toFixed(2); };
+  $('#smooth').oninput = e=>{ toolState.smoothing=parseFloat(e.target.value); $('#smoothVal').textContent=toolState.smoothing.toFixed(2); };
+  $('#color').oninput = e=>{ toolState.color = e.target.value; };
+
+  $('#swapBG').onclick=()=>{ project.bg = project.bg==='#111111' ? '#ffffff' : '#111111'; render(); };
+  $('#clearLayer').onclick=()=>{ const L=getActiveCtx(); L.clearRect(0,0,stage.width,stage.height); render(); pushHistory(); };
+
+  $('#addLayer').onclick = ()=> createLayer();
+  $('#delLayer').onclick = ()=> deleteLayer();
+  $('#mergeDown').onclick = ()=> mergeDown();
+  $('#blendMode').onchange = e=>{ project.layers[project.active].blend = e.target.value; render(); pushHistory(); };
+
+  // Project save/load
+  $('#saveProject').onclick = ()=>{
+    const data = { w:project.width, h:project.height, bg:project.bg, active:project.active, layers: project.layers.map(L=>({ name:L.name, visible:L.visible, opacity:L.opacity, blend:L.blend, x:L.x, y:L.y, bitmap:L.canvas.toDataURL('image/png') }))};
+    const blob = new Blob([JSON.stringify(data)], {type:'application/json'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='czdraw-project.json'; a.click();
+  };
+  $('#loadProject').onclick = ()=>{
+    const inp=document.createElement('input'); inp.type='file'; inp.accept='application/json'; inp.onchange=()=>{ const file=inp.files[0]; const r=new FileReader(); r.onload=()=>{ const st=JSON.parse(r.result); applyState({w:st.w,h:st.h,bg:st.bg,active:st.active,layers:st.layers}); pushHistory();}; r.readAsText(file); }; inp.click();
+  };
+
+  // Export
+  $('#exportBtn').onclick = ()=>{ const out=document.createElement('canvas'); out.width=project.width; out.height=project.height; const ox=out.getContext('2d'); ox.fillStyle=project.bg; ox.fillRect(0,0,out.width,out.height); for(let i=project.layers.length-1;i>=0;i--){ const L=project.layers[i]; if(!L.visible) continue; ox.globalAlpha=L.opacity; ox.globalCompositeOperation=L.blend; ox.drawImage(L.canvas,L.x,L.y); } const link=document.createElement('a'); link.href=out.toDataURL('image/png'); link.download='czdraw.png'; link.click(); };
+
+  // Import image
+  $('#openImgBtn').onclick = ()=> $('#imageInput').click();
+  $('#imageInput').onchange = (e)=>{ const file=e.target.files[0]; if(!file) return; const img=new Image(); img.onload=()=>{ const L=getActiveCtx(); L.drawImage(img,0,0,project.width,project.height); render(); pushHistory(); }; img.src=URL.createObjectURL(file); };
+
+  // Brush Studio
+  $('#openBrushStudio').onclick=()=> $('#brushModal').classList.remove('hidden');
+  $('#closeBrush').onclick=()=> $('#brushModal').classList.add('hidden');
+  $('#saveBrush').onclick=async ()=>{
+    const name=$('#bsName').value||'Custom Brush';
+    const tipFile=$('#bsTip').files[0];
+    const id = name.toLowerCase().replace(/[^a-z0-9]+/g,'-')+"-"+Date.now().toString(36);
+    const b = { id, name, tip:null, size:parseFloat($('#bsSize').value||20), spacing:parseFloat($('#bsSpacing').value||0.15), hardness:parseFloat($('#bsHard').value||0.8), flow:parseFloat($('#bsFlow').value||1), dynamics:{ sizeJitter:$('#dynSizeJitter').checked, angleJitter:$('#dynAngleJitter').checked, scatter:$('#dynScatter').checked, opacityJitter:$('#dynOpacityJitter').checked } };
+    if(tipFile){ const img=new Image(); await new Promise(res=>{ const fr=new FileReader(); fr.onload=()=>{ img.onload=()=>res(); img.src=fr.result; }; fr.readAsDataURL(tipFile); }); b.tipImg = img; }
+    brushes.push(b); localStorage.setItem('cz.brushes', JSON.stringify(brushes.map(({tipImg,...rest})=>rest))); // store metadata only
+    refreshBrushList(); activeBrushId=b.id; $('#brushModal').classList.add('hidden'); toast('Saved brush');
+  };
+
+  // ---------- NEW: Procreate .brush / .brushset importer (full) ----------
+  $('#importBrushset').onclick = ()=> $('#brushsetInput').click();
+
+  // ----------------- Plist (XML) parser -----------------
+  // Very small XML plist -> JS object parser. Handles dictionaries, arrays, strings, integers, reals, true/false.
+  function parsePlistXml(xmlText){
+    try{
+      const dom = new DOMParser().parseFromString(xmlText, 'application/xml');
+      function parseNode(node){
+        if(!node) return null;
+        const t = node.nodeName;
+        if(t==='dict') {
+          const obj = {};
+          let key = null;
+          for(let i=0;i<node.childNodes.length;i++){
+            const ch = node.childNodes[i];
+            if(ch.nodeType!==1) continue;
+            if(ch.nodeName==='key'){ key = ch.textContent; }
+            else {
+              if(key===null) continue;
+              obj[key] = parseNode(ch);
+              key = null;
+            }
+          }
+          return obj;
+        } else if(t==='array') {
+          const arr = [];
+          for(let i=0;i<node.childNodes.length;i++){
+            const ch = node.childNodes[i];
+            if(ch.nodeType!==1) continue;
+            arr.push(parseNode(ch));
+          }
+          return arr;
+        } else if(t==='string' || t==='data' ) {
+          return node.textContent || '';
+        } else if(t==='integer') {
+          return parseInt(node.textContent || '0',10);
+        } else if(t==='real') {
+          return parseFloat(node.textContent || '0');
+        } else if(t==='true') { return true; }
+        else if(t==='false') { return false; }
+        else {
+          // fallback: text content
+          return node.textContent || '';
+        }
+      }
+      // find top-level <plist> -> first child
+      const plist = dom.querySelector('plist');
+      if(!plist) return null;
+      // find first element child under plist
+      for(let i=0;i<plist.childNodes.length;i++){
+        const ch = plist.childNodes[i];
+        if(ch.nodeType===1) return parseNode(ch);
+      }
+      return null;
+    }catch(e){ console.warn('plist parse fail',e); return null; }
+  }
+
+  // ----------------- Helpers -----------------
+  function blobToImage(blob){
+    return new Promise((res, rej)=>{
+      const img = new Image();
+      img.onload = ()=>{ URL.revokeObjectURL(img.src); res(img); };
+      img.onerror = e=>rej(e);
+      img.src = URL.createObjectURL(blob);
+    });
+  }
+  function arrayBufferToBase64(buffer){
+    let binary = '';
+    const bytes = new Uint8Array(buffer);
+    const len = bytes.byteLength;
+    for (let i = 0; i < len; i++) binary += String.fromCharCode( bytes[i] );
+    return btoa(binary);
+  }
+
+  function saveBrushesToLocal(){
+    // store metadata only (tip image cannot be serialized) — when page reloads images must be reimported manually or cached externally
+    try{
+      const stripped = brushes.map(({tipImg,...rest})=>rest);
+      localStorage.setItem('cz.brushes', JSON.stringify(stripped));
+    }catch(e){ console.warn('saving brushes failed',e); }
+  }
+
+  function normalizeNumber(v, fallback=0){
+    if(v===undefined || v===null) return fallback;
+    if(typeof v === 'number') return v;
+    const n = parseFloat(v);
+    return isNaN(n) ? fallback : n;
+  }
+
+  // Map known Procreate-ish property names to our brush fields (best-effort)
+  function mapProcreateProps(props){
+    // props is an object parsed from properties.plist. Field names vary across versions.
+    const out = {};
+    // Attempt many common keys (not guaranteed; best-effort)
+    out.size = normalizeNumber(props['size'] ?? props['Size'] ?? props['DefaultSize'] ?? props['brushSize'] ?? props['TipSize'], 40);
+    // Spacing in Procreate often expressed as fraction (0-1); sometimes "spacing" or "spacingScalar"
+    out.spacing = normalizeNumber(props['spacing'] ?? props['Spacing'] ?? props['SpacingScalar'] ?? props['stampSpacing'] ?? props['strokeSpacing'], 0.15);
+    out.flow = normalizeNumber(props['flow'] ?? props['Flow'] ?? props['opacity'] ?? props['Opacity'] ?? props['FlowScalar'], 1);
+    // Hardness often not explicit; try gain from 'hardness' or 'sharpness' or 'roundness'
+    out.hardness = normalizeNumber(props['hardness'] ?? props['Hardness'] ?? props['TipHardness'] ?? props['smoothness'] ?? 0.8, 0.8);
+    // dynamics: many keys; we will map booleans if present
+    out.dynamics = {
+      sizeJitter: !!(props['sizeJitter'] || props['SizeJitter'] || props['RandomSize'] || props['scatter'] ),
+      angleJitter: !!(props['angleJitter'] || props['AngleJitter'] || props['RandomAngle']),
+      scatter: !!(props['scatter'] || props['Scatter'] || props['scattering']),
+      opacityJitter: !!(props['opacityJitter'] || props['OpacityJitter'] || props['RandomOpacity']),
+    };
+    // If there is a 'pressureCurve' or 'pressure' container, we could parse, but not used directly here.
+    return out;
+  }
+
+  // Create a brush object (czdraw format) from parsed parts
+  async function createBrushFromProcreateBundle(zip, fallbackName){
+    // Try to find shape.png and grain.png (case-insensitive)
+    const files = Object.keys(zip.files);
+    const lc = files.reduce((acc,p)=>{ acc[p.toLowerCase()] = p; return acc; }, {});
+    const shapePath = lc['shape.png'] || lc['tip.png'] || Object.keys(lc).find(p=>p.endsWith('/shape.png') || p.endsWith('/tip.png')) || null;
+    const grainPath = lc['grain.png'] || Object.keys(lc).find(p=>p.endsWith('/grain.png')) || null;
+    const plistPath = Object.keys(lc).find(p=>p.endsWith('properties.plist') || p.endsWith('.plist')) || null;
+
+    let tipImg = null, grainImg = null;
+    if(shapePath){
+      try{
+        const blob = await zip.file(shapePath).async('blob');
+        tipImg = await blobToImage(blob);
+      }catch(e){ console.warn('could not read shape',e); }
+    }
+    if(grainPath){
+      try{
+        const blob2 = await zip.file(grainPath).async('blob');
+        grainImg = await blobToImage(blob2);
+      }catch(e){ console.warn('could not read grain',e); }
+    }
+
+    // properties
+    let props = {};
+    if(plistPath){
+      try{
+        const txt = await zip.file(plistPath).async('text');
+        const parsed = parsePlistXml(txt);
+        if(parsed) props = parsed;
+      }catch(e){ console.warn('plist read fail', e); }
+    }
+
+    const mapped = mapProcreateProps(props);
+
+    const id = 'pc-'+(fallbackName||'brush')+'-'+Date.now().toString(36)+Math.floor(Math.random()*999);
+    const name = (props['Name'] || props['name'] || fallbackName || 'Imported Brush');
+    const b = {
+      id,
+      name,
+      tip: null,
+      tipImg: tipImg,
+      grainImg: grainImg,
+      size: mapped.size || 40,
+      spacing: mapped.spacing || 0.15,
+      flow: mapped.flow || 1,
+      hardness: (mapped.hardness===undefined?0.8:mapped.hardness),
+      dynamics: Object.assign({sizeJitter:false,angleJitter:false,scatter:false,opacityJitter:false}, mapped.dynamics || {})
+    };
+    return b;
+  }
+
+  // Top-level importer: handles .brush (zip) or .brushset (zip container with .brush files)
+  $('#brushsetInput').onchange = async (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    toast('Parsing brush file…');
+    try{
+      const buf = await file.arrayBuffer();
+      const zip = await JSZip.loadAsync(buf);
+
+      // Heuristic: if zip contains multiple .brush files as binary blobs or folders, extract them
+      // Case A: .brushset: may contain many entries that are themselves .brush bundles (files ending with .brush)
+      const fileNames = Object.keys(zip.files);
+      const nestedBrushFiles = fileNames.filter(p=>p.toLowerCase().endsWith('.brush'));
+      const imported = [];
+
+      if(nestedBrushFiles.length>0){
+        // Each nested .brush entry might be a blob of a zipped brush; some brushsets have nested folder structures.
+        for(const p of nestedBrushFiles){
+          try{
+            const innerBuf = await zip.files[p].async('arraybuffer');
+            const innerZip = await JSZip.loadAsync(innerBuf);
+            const fallbackName = p.split('/').pop().replace(/\.brush$/i,'');
+            const b = await createBrushFromProcreateBundle(innerZip, fallbackName);
+            brushes.push(b);
+            imported.push(b);
+          }catch(err){
+            console.warn('nested brush read fail',p,err);
+          }
+        }
+      } else {
+        // Case B: .brush (single) - the top-level zip contains shape.png, properties.plist etc. So treat zip itself as a brush
+        // But some .brushset are folder bundles with multiple subfolders; attempt to treat top-level as either: folder per brush or single brush.
+        // Try to detect folders that look like brushes (contain properties.plist or shape.png)
+        const candidateFolders = {};
+        for(const p of fileNames){
+          const parts = p.split('/');
+          if(parts.length>1){
+            const folder = parts[0];
+            candidateFolders[folder] = candidateFolders[folder] || [];
+            candidateFolders[folder].push(p);
+          }
+        }
+        // Look for folders that contain a plist or shape.png
+        const brushFolders = Object.keys(candidateFolders).filter(f=>{
+          const arr = candidateFolders[f];
+          return arr.some(x=>x.toLowerCase().endsWith('properties.plist') || x.toLowerCase().endsWith('shape.png') );
+        });
+
+        if(brushFolders.length>0){
+          for(const fol of brushFolders){
+            // build a mini-zip with entries that start with fol + '/'
+            const miniZip = new JSZip();
+            for(const p of fileNames){
+              if(p.startsWith(fol+'/')){
+                const entry = zip.files[p];
+                // re-add into miniZip with stripped folder
+                const stripped = p.slice(fol.length+1);
+                const asArray = await entry.async('arraybuffer');
+                miniZip.file(stripped, asArray);
+              }
+            }
+            const b = await createBrushFromProcreateBundle(miniZip, fol);
+            brushes.push(b);
+            imported.push(b);
+          }
+        } else {
+          // fallback: treat top-level zip as a single brush
+          const b = await createBrushFromProcreateBundle(zip, file.name.replace(/\.(brush|brushset|zip|bbrush)$/i,''));
+          brushes.push(b);
+          imported.push(b);
+        }
+      }
+
+      if(imported.length>0){
+        saveBrushesToLocal();
+        refreshBrushList();
+        toast(`Imported ${imported.length} brush${imported.length>1?'es':''}`);
+      } else {
+        toast('No brushes found in that file');
+      }
+    }catch(err){
+      console.error(err);
+      toast('Failed to read brush file (maybe binary plist?)');
+    } finally {
+      // reset input so same file can be re-selected next time
+      e.target.value = '';
+    }
+  };
+
+  // Home / New
+  function openHome(){ $('#homeModal').classList.remove('hidden'); }
+  function closeHome(){ $('#homeModal').classList.add('hidden'); }
+  $('#homeBtn').onclick=openHome; $$('#homeModal .preset').forEach(b=>b.onclick=()=>{ const k=b.dataset.preset; if(k==='hd') setCanvasSize(1920,1080); if(k==='square') setCanvasSize(2048,2048); if(k==='poster') setCanvasSize(3000,4000); closeHome(); pushHistory(); render(); });
+  $('#homeCreate').onclick=()=>{ const w=parseInt($('#cWidth').value)||1600; const h=parseInt($('#cHeight').value)||900; setCanvasSize(w,h); closeHome(); pushHistory(); render(); };
+  $('#homeOpen').onclick=()=>$('#homeImport').click();
+  $('#homeImport').onchange=(e)=>{ const f=e.target.files[0]; if(!f) return; const img=new Image(); img.onload=()=>{ setCanvasSize(img.naturalWidth, img.naturalHeight); const L=getActiveCtx(); L.drawImage(img,0,0,stage.width,stage.height); closeHome(); render(); pushHistory(); }; img.src=URL.createObjectURL(f); };
+  $('#newBtn').onclick=openHome;
+
+  function setCanvasSize(w,h){ stage.width=w; stage.height=h; project.width=w; project.height=h; wh.textContent = `${w}×${h}`; project.layers = []; createLayer('Layer 1'); render(); }
+
+  // Hotkeys
+  window.addEventListener('keydown', e=>{
+    if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='z'){ e.preventDefault(); undo(); }
+    if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='y'){ e.preventDefault(); redoAct(); }
+    if(e.key==='b'||e.key==='B') $('.tool[data-tool="brush"]').click();
+    if(e.key==='e'||e.key==='E') $('.tool[data-tool="eraser"]').click();
+    if(e.key==='s'||e.key==='S') $('.tool[data-tool="smudge"]').click();
+    if(e.key==='i'||e.key==='I') $('.tool[data-tool="picker"]').click();
+    if(e.key==='v'||e.key==='V') $('.tool[data-tool="move"]').click();
+  });
+
+  // FPS meter
+  let last=performance.now(), fps=0;
+  function tick(){ const now=performance.now(); fps = lerp(fps, 1000/(now-last), .05); last=now; $('#fps').textContent=fps.toFixed(0); requestAnimationFrame(tick); }
+  requestAnimationFrame(tick);
+
+  // Init
+  setCanvasSize(1600,900);
+  openHome();
+  pushHistory();
+
+  // Rehydrate brush images from localStorage metadata on first use
+  // (We only stored metadata; if a brush had a tip image, user will need to re-import tip for now.)
+  brushes.forEach(b=>{ b.tipImg = b.tipImg || null; });
+
+  </script>
+</body>
+</html>
